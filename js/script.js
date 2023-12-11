@@ -1,11 +1,10 @@
 // Importando o módulo THREE.js
-import * as THREE from 'https://threejs.org/build/three.module.js';
+import * as THREE from 'three';
+import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 
-// Definindo constantes para a cena, câmera e cubo
-const SCENE_WIDTH = 800; // Largura da cena
-const SCENE_HEIGHT = 600; // Altura da cena
-const CAMERA_FIELD_OF_VIEW = 75; // Campo de visão da câmera
-const CAMERA_POSITION_Z = 5; // Posição da câmera no eixo Z
+// Definindo constantes para a largura e altura da cena
+const SCENE_WIDTH = window.innerWidth;
+const SCENE_HEIGHT = window.innerHeight;
 
 // Função para criar a cena
 function createScene() {
@@ -16,12 +15,15 @@ function createScene() {
 
 // Função para criar a câmera
 function createCamera() {
-    // Calcula a proporção da cena
-    const aspectRatio = SCENE_WIDTH / SCENE_HEIGHT;
+    // Define os limites da câmera perspectiva
+    const fov = 75; // Campo de visão
+    const aspect = SCENE_WIDTH / SCENE_HEIGHT; // Proporção da cena
+    const near = 0.1; // Limite mais próximo que a câmera pode ver
+    const far = 1000; // Limite mais distante que a câmera pode ver
+
     // Cria uma nova câmera perspectiva
-    const camera = new THREE.PerspectiveCamera(CAMERA_FIELD_OF_VIEW, aspectRatio, 0.1, 100);
-    // Define a posição da câmera no eixo Z
-    camera.position.z = CAMERA_POSITION_Z;
+    const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+    camera.position.z = 5; // Posiciona a câmera no eixo Z
     return camera; // Retorna a câmera criada
 }
 
@@ -36,6 +38,17 @@ function createRenderer() {
     return renderer; // Retorna o renderizador criado
 }
 
+// Função para criar um cubo
+function createCube(color) {
+    // Define a geometria do cubo
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    // Define o material do cubo
+    const material = new THREE.MeshBasicMaterial({ color });
+    // Cria o cubo
+    const cube = new THREE.Mesh(geometry, material);
+    return cube; // Retorna o cubo criado
+}
+
 // Função principal
 function main() {
     // Cria a cena
@@ -43,60 +56,57 @@ function main() {
     // Cria a câmera
     const camera = createCamera();
 
-    // Cria o AxesHelper
-    const axesHelper = new THREE.AxesHelper(2);
-    scene.add(axesHelper); // Adiciona o AxesHelper à cena
+    // Cria os cubos
+    const cube1 = createCube(0xff0000); // Cubo vermelho
+    const cube2 = createCube(0x00ff00); // Cubo verde
+    const cube3 = createCube(0x0000ff); // Cubo azul
 
-    // Cria um grupo
-    const group = new THREE.Group();
-    group.rotation.y = 0.2; // Define a rotação do grupo no eixo Y
-    scene.add(group); // Adiciona o grupo à cena
-
-    // Cria o primeiro cubo
-    const cube1 = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 1, 1), // Define a geometria do cubo
-        new THREE.MeshBasicMaterial({ color: 0xff0000 }) // Define o material do cubo
-    );
-    cube1.position.x = -1.5; // Define a posição do cubo no eixo X
-    group.add(cube1); // Adiciona o cubo ao grupo
-
-    // Cria o segundo cubo
-    const cube2 = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 1, 1), // Define a geometria do cubo
-        new THREE.MeshBasicMaterial({ color: 0xff0000 }) // Define o material do cubo
-    );
-    cube2.position.x = 0; // Define a posição do cubo no eixo X
-    group.add(cube2); // Adiciona o cubo ao grupo
-
-    // Cria o terceiro cubo
-    const cube3 = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 1, 1), // Define a geometria do cubo
-        new THREE.MeshBasicMaterial({ color: 0xff0000 }) // Define o material do cubo
-    );
-    cube3.position.x = 1.5; // Define a posição do cubo no eixo X
-    group.add(cube3); // Adiciona o cubo ao grupo
+    // Adiciona os cubos à cena
+    scene.add(cube1);
+    scene.add(cube2);
+    scene.add(cube3);
 
     // Cria o renderizador
     const renderer = createRenderer();
 
-    // Faz a câmera olhar para a posição do grupo
-    camera.lookAt(group.position);
+    // Cria o efeito de contorno
+    const effect = new OutlineEffect(renderer);
+    effect.setSize(SCENE_WIDTH, SCENE_HEIGHT);
 
-    // Função de animação
-    function animate() {
-        // Move os cubos em direção ao centro
-        if (cube1.position.x < -0.1) cube1.position.x += 0.01;
-        if (cube3.position.x > 0.1) cube3.position.x -= 0.01;
+    /**
+     * Animate
+     */
+    const clock = new THREE.Clock(); // Cria um novo relógio
+
+    const tick = () => {
+        const elapsedTime = clock.getElapsedTime(); // Obtém o tempo decorrido desde a criação do relógio
+
+        // Atualiza os objetos
+        camera.position.x = Math.cos(elapsedTime); // Move a câmera no eixo X
+        camera.position.y = Math.sin(elapsedTime); // Move a câmera no eixo Y
+        camera.lookAt(cube1.position); // Faz a câmera olhar para o cubo1
+
+        // Faz os cubos girarem
+        cube1.rotation.x += 0.01;
+        cube1.rotation.y += 0.01;
+        cube2.rotation.x += 0.01;
+        cube2.rotation.y += 0.01;
+        cube3.rotation.x += 0.01;
+        cube3.rotation.y += 0.01;
+
+        // Move os cubos 2 e 3 para fora e depois de volta para o cubo 1
+        const distance = Math.sin(elapsedTime) * 2;
+        cube2.position.x = distance;
+        cube3.position.x = -distance;
 
         // Renderiza a cena
-        renderer.render(scene, camera);
+        effect.render(scene, camera);
 
-        // Solicita o próximo quadro de animação
-        requestAnimationFrame(animate);
+        // Chama a função tick novamente no próximo frame
+        window.requestAnimationFrame(tick);
     }
 
-    // Inicia a animação
-    animate();
+    tick(); // Chama a função tick pela primeira vez
 }
 
 // Chama a função principal
